@@ -1,9 +1,10 @@
 #include<iostream>
+#include <cstring>
 #include<cmath>
 #include<vector>
+#include <algorithm>
 
 //define some variables
-const int history = 5000;
 const int radius = 5;
 const int fr = 1;
 const double speed = 1.0;
@@ -12,88 +13,83 @@ const double dt = 1.0/fps;
 const int final_time = 200;
 const int steps = final_time/dt;
 
+// Define a struct to represent a particle
+struct Particle {
+    double x;
+    double y;
+    double vx;
+    double vy;
+
+    bool operator==(const Particle& other) const {
+        return x == other.x && y == other.y && vx == other.vx && vy == other.vy;
+    }
+};
+
 //initialize particle location
-double r[history][2];
-void initialize_particles(double r[][2], int history){
+std::vector<Particle> initialize_particles(int history){
+    std::vector<Particle> particles(history);
+    
     for(int i=0; i<history; i++){
         double teta = ((double)rand() / RAND_MAX) * 2 * M_PI;
         double position = ((double)rand() / RAND_MAX) * radius;
-        r[i][0] = position*cos(teta);
-        r[i][1] = position*sin(teta);
+        double teta2 = ((double)rand() / RAND_MAX) * 2 * M_PI;
+        particles[i] = {position*cos(teta), position*sin(teta), position*cos(teta2), position*sin(teta2)};
     }
+    return particles;
 }
 
 //initialize fuel
 double fuel[1][2];
 void initialize_fuel(double fuel[1][2]){
-    double fuel[0][0] = 0;
-    double fuel[0][1] = 0;
+    fuel[0][0] = 0;
+    fuel[0][1] = 0;
 }
 
-//initialize particle speed
-double v[history][2];
-void initialize_speed(double v[][2], int history){
-    for(int i=0; i<history; i++){
-        double teta =((double)rand() / RAND_MAX) *2 * M_PI;
-        V[i][0] = speed * cos(teta)
-        v[i][1] = speed * sin(teta)
+std::vector<Particle> update_particles(std::vector<Particle>& particles) {
+    std::vector<Particle> new_particles;
+
+    for(auto& particle : particles) {
+        if (particle.x >= fuel[0][0] - fr && particle.x <= fuel[0][0] + fr &&
+                 particle.y >= fuel[0][1] - fr && particle.y <= fuel[0][1] + fr &&
+                 sqrt(particle.x * particle.x + particle.y * particle.y) <= fr) {
+            // Delete the particle
+            particles.erase(std::remove(particles.begin(), particles.end(), particle), particles.end());
+            // Particle hits fuel, create new particles
+            std::vector<Particle> new_particles = initialize_particles(2);
+        }
+        else if (sqrt(particle.x * particle.x + particle.y * particle.y) < radius) {
+            // Particle is inside the domain, update position
+            particle.x += particle.vx * dt;
+            particle.y += particle.vy * dt;
+        }
+        else {
+            // Particle hits boundary, update velocity and position
+            double distance_to_origin = sqrt(particle.x * particle.x + particle.y * particle.y);
+            double normal_vector_x = particle.x / distance_to_origin;
+            double normal_vector_y = particle.y / distance_to_origin;
+            double dot_product = particle.vx * normal_vector_x + particle.vy * normal_vector_y;
+            particle.vx -= 2 * dot_product * normal_vector_x;
+            particle.vy -= 2 * dot_product * normal_vector_y;
+            particle.x += particle.vx * dt;
+            particle.y += particle.vy * dt;
+        }
     }
+    particles.insert(particles.end(), new_particles.begin(), new_particles.end());
+    return particles;
 }
 
 //main loop of the program
 int main(){
     srand(time(0));
-    
-    double record[steps][history][2];
-    memcpy(record[0], r, sizeof(r));
-    
-    initialize_particles(r,history);
-    initialize_fuel();
-    initialize_speed(v, history);
 
-    for(int i=1; i<steps; i++){
-        for(int j=0; j<history; j++){
-            if(r[j][0] == 11000){
-                continue;
-            }
-            else if (r[j][0] >= fuel[0][0]-fr && r[j][0] <= fuel[0][0]+fr &&
-                     r[j][0] >= fuel[0][0]-fr && r[j][0] <= fuel[0][0]+fr &&
-                     sqrt(r[j][0]*r[j][0] + r[j][0]*r[j][0]) <= fr){
-                r[j][0] = 11000;
-                v[j][0] = 0;
-                double r2[2][2];
-                initialize_particles(r2, 2);
-                double v2[2][2];
-                initialize_particles(v2, 2);
-                for (int k = 0; i<2, i++){
-                    r[history+k][0] = r2[k][0]
-                    r[history+k][1] = r2[k][1]
-                    v[history+k][0] = v2[k][0]
-                    v[history+k][1] = v2[k][1]
-                }
-                history += 2;
-                double record2[steps][history][2];
-                memcpy(record2, record, sizeof(record));
-                memcpy(record2[i], r, sizeof(r));
-                memcpy(record, record2, sizeof(record2));
-                continue;
-            }
-            else if (sqrt(r[j][0]*r[j][0] + r[j][1]*r[j][1]) < radius) {
-                r[j][0] += v[j][0]*dt;
-                r[j][1] += v[j][1]*dt;
-                continue;
-            }
-            else {
-                double distance_to_origin = sqrt(r[j][0]*r[j][0] + r[j][1]*r[j][1]);
-                double normal_vector[2] = {r[j][0]/distance_to_origin, r[j][1]/distance_to_origin};
-                double dot_product = v[j][0]*normal_vector[0] + v[j][1]*normal_vector[1];
-                v[j][0] -= 2 * dot_product * normal_vector[0];
-                v[j][1] -= 2 * dot_product * normal_vector[1];
-                r[j][0] += v[j][0] * dt;
-                r[j][1] += v[j][1] * dt;
-            }
-        }
-        memcpy(record[i], r, sizeof(r));
+    int history = 300;
+    std::vector<Particle> particles = initialize_particles(history);
+    initialize_fuel(fuel);
+    for(int i=0; i<steps; i++){
+        std::vector<Particle> particles = update_particles(particles);
     }
+    std::cout<<"Position"<<std::endl;
+    std::cout<<particles[5].x<<std::endl;
+    std::cout<<particles[5].y<<std::endl;
     return 0;
 }
