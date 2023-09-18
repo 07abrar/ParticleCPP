@@ -95,18 +95,28 @@ int main(){
     for(auto i:particles){
         c++;
     }
-
     std::cout<<"The length of array is "<<c<<std::endl;
     std::cout<<"Position 1"<<std::endl;
     std::cout<<particles[299].x<<std::endl;
     std::cout<<particles[299].y<<std::endl;
     
     initialize_fuel(fuel);
+    /*
     for(int i=0; i<steps; i++){
-        update_particles(particles);
+        std::vector<Particle> particles = update_particles(particles);
     }
+    */
+    update_particles(particles);
+    int d=0;
+    for(auto i:particles){
+        d++;
+    }
+    std::cout<<"The length of array is "<<d<<std::endl;
+    std::cout<<"Position 2"<<std::endl;
+    std::cout<<particles[299].x<<std::endl;
+    std::cout<<particles[299].y<<std::endl;
 
-
+    update_particles(particles);
     int e=0;
     for(auto i:particles){
         e++;
