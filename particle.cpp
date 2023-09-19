@@ -2,8 +2,13 @@
 #include <cstring>
 #include<cmath>
 #include<vector>
-#include <algorithm>
-#include <limits>
+#include<algorithm>
+#include<limits>
+#include<fstream>
+#include<ctime>
+
+#define THREAD 4
+#include<omp.h>
 
 //define some variables
 const int radius = 5;
@@ -11,7 +16,7 @@ const int fr = 1;
 const double speed = 1.0;
 const int fps = 20;
 const double dt = 1.0/fps;
-const int final_time = 200;
+const int final_time = 10;
 const int steps = final_time/dt;
 
 // Define a struct to represent a particle
@@ -26,6 +31,7 @@ struct Particle {
 std::vector<Particle> initialize_particles(int history){
     std::vector<Particle> particles(history);
     
+    //#pragma omp parallel for num_threads(THREAD)
     for(int i=0; i<history; i++){
         double teta = ((double)rand() / RAND_MAX) * 2 * M_PI;
         double position = ((double)rand() / RAND_MAX) * radius;
@@ -42,10 +48,11 @@ void initialize_fuel(double fuel[1][2]){
     fuel[0][1] = 0;
 }
 
-void update_particles(std::vector<Particle>& particles) {
+void update_particles(std::vector<Particle>& particles, int i) {
     std::vector<Particle> new_particles;
     std::vector<Particle> new_particles_to_add;
 
+    //#pragma omp parallel for num_threads(THREAD)
     for(auto& particle : particles) {
         if (std::isnan(particle.x)){
             continue;
@@ -83,13 +90,29 @@ void update_particles(std::vector<Particle>& particles) {
         }
     }
     particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
+    
+    std::ofstream outputFile("particles_time_step_" + std::to_string(i) + ".csv", std::ios::app);
+    if (outputFile.is_open()) {
+        outputFile << "x" << "," << "y" << "\n";
+        for (const auto& particle : particles) {
+            if (!std::isnan(particle.x)) {
+                outputFile << particle.x << "," << particle.y << "\n";
+            }
+        }
+        outputFile.close();
+    }
+    else {
+        std::cerr << "Error: Unable to open file for writing.\n";
+        }
+    
 }
 
 //main loop of the program
 int main(){
+    std::clock_t c_start = std::clock();
     srand(time(0));
 
-    int history = 300;
+    int history = 500;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){
@@ -103,7 +126,7 @@ int main(){
     
     initialize_fuel(fuel);
     for(int i=0; i<steps; i++){
-        update_particles(particles);
+        update_particles(particles, i);
     }
 
 
@@ -115,5 +138,9 @@ int main(){
     std::cout<<"Position 3"<<std::endl;
     std::cout<<particles[299].x<<std::endl;
     std::cout<<particles[299].y<<std::endl;
+
+    std::clock_t c_end = std::clock();
+    double time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
+    std::cout << "CPU time used: " << time_elapsed_ms / 1000.0 << " s\n";
     return 0;
 }
