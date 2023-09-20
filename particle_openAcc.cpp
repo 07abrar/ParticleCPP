@@ -34,8 +34,7 @@ struct Particle {
 //initialize particle
 std::vector<Particle> initialize_particles(int history){
     std::vector<Particle> particles(history);
-    
-    //#pragma omp parallel for num_threads(THREAD)
+
     for(int i=0; i<history; i++){
         double teta = ((double)rand() / RAND_MAX) * 2 * M_PI;
         double position = ((double)rand() / RAND_MAX) * radius;
@@ -54,7 +53,7 @@ void initialize_fuel(double fuel[1][2]){
 
 void update_particles(std::vector<Particle>& particles, int history, std::vector<int>& collision, int j) {
 
-    #pragma acc parallel loop present(particles, collision)
+    #pragma acc kernels
     for(int i=0; i<history; i++) {
         if (std::isnan(particles[i].x)){
             continue;
@@ -87,23 +86,6 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
             particles[i].y += particles[i].vy * dt;
         }
     }
-/*
-    std::ostringstream filename;
-    filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << i << ".csv";
-    std::ofstream outputFile(filename.str(), std::ios::app);
-    if (outputFile.is_open()) {
-        outputFile << "x" << "," << "y" << "\n";
-        for (const auto& particle : particles) {
-            if (!std::isnan(particle.x)) {
-                outputFile << particle.x << "," << particle.y << "\n";
-            }
-        }
-        outputFile.close();
-    }
-    else {
-        std::cerr << "Error: Unable to open file for writing.\n";
-        }
-*/
 }
 
 //main loop of the program
@@ -126,6 +108,7 @@ int main(){
     initialize_fuel(fuel);
     for(int j=0; j<steps; j++){
         std::vector<int> collision(history, 0);
+        #pragma acc data(particles, collision)
         update_particles(particles, history, collision, j);
         std::vector<Particle> new_particles;
         std::vector<Particle> new_particles_to_add;
