@@ -6,6 +6,8 @@
 #include<limits>
 #include<fstream>
 #include<ctime>
+#include<iomanip>
+#include <sstream>
 
 #define THREAD 4
 #include<omp.h>
@@ -16,7 +18,7 @@ const int fr = 1;
 const double speed = 1.0;
 const int fps = 20;
 const double dt = 1.0/fps;
-const int final_time = 200;
+const int final_time = 20;
 const int steps = final_time/dt;
 
 // Define a struct to represent a particle
@@ -27,7 +29,7 @@ struct Particle {
     double vy;
 };
 
-//initialize particle location
+//initialize particle
 std::vector<Particle> initialize_particles(int history){
     std::vector<Particle> particles(history);
     
@@ -48,51 +50,42 @@ void initialize_fuel(double fuel[1][2]){
     fuel[0][1] = 0;
 }
 
-void update_particles(std::vector<Particle>& particles, int i) {
-    std::vector<Particle> new_particles;
-    std::vector<Particle> new_particles_to_add;
+void update_particles(std::vector<Particle>& particles, int history, std::vector<int>& collision, int j) {
 
-    //#pragma omp parallel for num_threads(THREAD)
-    for(auto& particle : particles) {
-        if (std::isnan(particle.x)){
+    #pragma omp parallel for num_threads(THREAD)
+    for(int i=0; i<history; i++) {
+        if (std::isnan(particles[i].x)){
             continue;
         }
 
-        else if (particle.x >= fuel[0][0] - fr && particle.x <= fuel[0][0] + fr &&
-                 particle.y >= fuel[0][1] - fr && particle.y <= fuel[0][1] + fr &&
-                 sqrt(particle.x * particle.x + particle.y * particle.y) <= fr) {
+        else if (particles[i].x >= fuel[0][0] - fr && particles[i].x <= fuel[0][0] + fr &&
+                 particles[i].y >= fuel[0][1] - fr && particles[i].y <= fuel[0][1] + fr &&
+                 sqrt(particles[i].x * particles[i].x + particles[i].y * particles[i].y) <= fr) {
             // Delete the particle as NaN
-            particle.x = std::numeric_limits<double>::quiet_NaN();
-            particle.y = std::numeric_limits<double>::quiet_NaN();
-            particle.vx = std::numeric_limits<double>::quiet_NaN();
-            particle.vy = std::numeric_limits<double>::quiet_NaN();
-
-            new_particles = initialize_particles(2);
-            for(auto& new_particle : new_particles) {
-                new_particles_to_add.push_back(new_particle);
-            }
+            particles[i].x = std::numeric_limits<double>::quiet_NaN();
+            particles[i].y = std::numeric_limits<double>::quiet_NaN();
+            particles[i].vx = std::numeric_limits<double>::quiet_NaN();
+            particles[i].vy = std::numeric_limits<double>::quiet_NaN();
+            collision[i] = 1;
         }
-        else if (sqrt(particle.x * particle.x + particle.y * particle.y) < radius) {
+        else if (sqrt(particles[i].x * particles[i].x + particles[i].y * particles[i].y) < radius) {
             // Particle is inside the domain, update position
-            particle.x += particle.vx * dt;
-            particle.y += particle.vy * dt;
+            particles[i].x += particles[i].vx * dt;
+            particles[i].y += particles[i].vy * dt;
         }
         else {
             // Particle hits boundary, update velocity and position
-            double distance_to_origin = sqrt(particle.x * particle.x + particle.y * particle.y);
-            double normal_vector_x = particle.x / distance_to_origin;
-            double normal_vector_y = particle.y / distance_to_origin;
-            double dot_product = particle.vx * normal_vector_x + particle.vy * normal_vector_y;
-            particle.vx -= 2 * dot_product * normal_vector_x;
-            particle.vy -= 2 * dot_product * normal_vector_y;
-            particle.x += particle.vx * dt;
-            particle.y += particle.vy * dt;
+            double distance_to_origin = sqrt(particles[i].x * particles[i].x + particles[i].y * particles[i].y);
+            double normal_vector_x = particles[i].x / distance_to_origin;
+            double normal_vector_y = particles[i].y / distance_to_origin;
+            double dot_product = particles[i].vx * normal_vector_x + particles[i].vy * normal_vector_y;
+            particles[i].vx -= 2 * dot_product * normal_vector_x;
+            particles[i].vy -= 2 * dot_product * normal_vector_y;
+            particles[i].x += particles[i].vx * dt;
+            particles[i].y += particles[i].vy * dt;
         }
     }
-    particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
-    
-    /*
-    std::ofstream outputFile("particles_time_step_" + std::to_string(i) + ".csv", std::ios::app);
+    std::ofstream outputFile("particles_time_step_" + std::to_string(j) + ".csv", std::ios::app);
     if (outputFile.is_open()) {
         outputFile << "x" << "," << "y" << "\n";
         for (const auto& particle : particles) {
@@ -105,7 +98,6 @@ void update_particles(std::vector<Particle>& particles, int i) {
     else {
         std::cerr << "Error: Unable to open file for writing.\n";
         }
-    */
 }
 
 //main loop of the program
@@ -113,7 +105,7 @@ int main(){
     std::clock_t c_start = std::clock();
     srand(time(0));
 
-    int history = 50000;
+    int history = 500;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){
@@ -126,8 +118,23 @@ int main(){
     std::cout<<particles[299].y<<std::endl;
     
     initialize_fuel(fuel);
-    for(int i=0; i<steps; i++){
-        update_particles(particles, i);
+    for(int j=0; j<steps; j++){
+        std::vector<int> collision(history, 0);
+        update_particles(particles, history, collision, j);
+        std::vector<Particle> new_particles;
+        std::vector<Particle> new_particles_to_add;
+        for(int k=0; k<history; k++){
+            if(collision[k]==1){
+                new_particles = initialize_particles(2);
+                for(auto& new_particle : new_particles) {
+                    new_particles_to_add.push_back(new_particle);
+                    }
+                history += 2;
+            }
+        }
+        particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
+        new_particles.clear();
+        new_particles_to_add.clear();
     }
 
 

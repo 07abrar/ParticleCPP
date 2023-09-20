@@ -6,6 +6,8 @@
 #include<limits>
 #include<fstream>
 #include<ctime>
+#include<iomanip>
+#include <sstream>
 
 #define THREAD 4
 #include<omp.h>
@@ -16,7 +18,7 @@ const int fr = 1;
 const double speed = 1.0;
 const int fps = 20;
 const double dt = 1.0/fps;
-const int final_time = 200;
+const int final_time = 20;
 const int steps = final_time/dt;
 
 // Define a struct to represent a particle
@@ -52,7 +54,7 @@ void update_particles(std::vector<Particle>& particles, int i) {
     std::vector<Particle> new_particles;
     std::vector<Particle> new_particles_to_add;
 
-    //#pragma omp parallel for num_threads(THREAD)
+    #pragma omp parallel for num_threads(THREAD)
     for(auto& particle : particles) {
         if (std::isnan(particle.x)){
             continue;
@@ -62,14 +64,17 @@ void update_particles(std::vector<Particle>& particles, int i) {
                  particle.y >= fuel[0][1] - fr && particle.y <= fuel[0][1] + fr &&
                  sqrt(particle.x * particle.x + particle.y * particle.y) <= fr) {
             // Delete the particle as NaN
-            particle.x = std::numeric_limits<double>::quiet_NaN();
-            particle.y = std::numeric_limits<double>::quiet_NaN();
-            particle.vx = std::numeric_limits<double>::quiet_NaN();
-            particle.vy = std::numeric_limits<double>::quiet_NaN();
+            #pragma omp critical
+            {
+                particle.x = std::numeric_limits<double>::quiet_NaN();
+                particle.y = std::numeric_limits<double>::quiet_NaN();
+                particle.vx = std::numeric_limits<double>::quiet_NaN();
+                particle.vy = std::numeric_limits<double>::quiet_NaN();
 
-            new_particles = initialize_particles(2);
-            for(auto& new_particle : new_particles) {
-                new_particles_to_add.push_back(new_particle);
+                new_particles = initialize_particles(2);
+                for(auto& new_particle : new_particles) {
+                    new_particles_to_add.push_back(new_particle);
+            }
             }
         }
         else if (sqrt(particle.x * particle.x + particle.y * particle.y) < radius) {
@@ -89,10 +94,13 @@ void update_particles(std::vector<Particle>& particles, int i) {
             particle.y += particle.vy * dt;
         }
     }
-    particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
-    
-    /*
-    std::ofstream outputFile("particles_time_step_" + std::to_string(i) + ".csv", std::ios::app);
+    #pragma omp critical
+    {
+        particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
+    }
+    std::ostringstream filename;
+    filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << i << ".csv";
+    std::ofstream outputFile(filename.str(), std::ios::app);
     if (outputFile.is_open()) {
         outputFile << "x" << "," << "y" << "\n";
         for (const auto& particle : particles) {
@@ -105,7 +113,6 @@ void update_particles(std::vector<Particle>& particles, int i) {
     else {
         std::cerr << "Error: Unable to open file for writing.\n";
         }
-    */
 }
 
 //main loop of the program
@@ -113,7 +120,7 @@ int main(){
     std::clock_t c_start = std::clock();
     srand(time(0));
 
-    int history = 50000;
+    int history = 500;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){

@@ -1,13 +1,14 @@
 #include <stdio.h>
+#include <iostream>
 #include <omp.h>
 #define MAX 4
 
 int main() {
    int count = 0;
-   #pragma omp parallel num_threads(MAX)
-   {
-      #pragma omp atomic
-      count++;
+   count++;
+   std::cout << count << std::endl;
+
+   fungsi(&a){
+      a++
    }
-   printf("Number of threads: %d\n", count);
 }
