@@ -54,7 +54,7 @@ void initialize_fuel(double fuel[1][2]){
 
 void update_particles(std::vector<Particle>& particles, int history, std::vector<int>& collision, int j) {
 
-    #pragma omp parallel for num_threads(THREAD)
+    #pragma acc parallel loop present(particles, collision)
     for(int i=0; i<history; i++) {
         if (std::isnan(particles[i].x)){
             continue;
@@ -87,6 +87,7 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
             particles[i].y += particles[i].vy * dt;
         }
     }
+/*
     std::ostringstream filename;
     filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << i << ".csv";
     std::ofstream outputFile(filename.str(), std::ios::app);
@@ -102,6 +103,7 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
     else {
         std::cerr << "Error: Unable to open file for writing.\n";
         }
+*/
 }
 
 //main loop of the program
