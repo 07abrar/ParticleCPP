@@ -113,7 +113,7 @@ int main(){
     std::clock_t c_start = std::clock();
     srand(time(0));
 
-    int history = 50000;
+    int history = 5000;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){

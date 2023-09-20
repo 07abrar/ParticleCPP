@@ -20,7 +20,7 @@ const int fr = 1;
 const double speed = 1.0;
 const int fps = 20;
 const double dt = 1.0/fps;
-const int final_time = 20;
+const int final_time = 200;
 const int steps = final_time/dt;
 
 // Define a struct to represent a particle
@@ -93,7 +93,7 @@ int main(){
     std::clock_t c_start = std::clock();
     srand(time(0));
 
-    int history = 500;
+    int history = 5000;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){

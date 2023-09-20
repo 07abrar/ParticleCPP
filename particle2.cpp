@@ -9,7 +9,7 @@
 #include<iomanip>
 #include <sstream>
 
-#define THREAD 4
+#define THREAD 30
 #include<omp.h>
 
 //define some variables
@@ -18,7 +18,7 @@ const int fr = 1;
 const double speed = 1.0;
 const int fps = 20;
 const double dt = 1.0/fps;
-const int final_time = 20;
+const int final_time = 200;
 const int steps = final_time/dt;
 
 // Define a struct to represent a particle
@@ -85,6 +85,7 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
             particles[i].y += particles[i].vy * dt;
         }
     }
+/*
     std::ostringstream filename;
     filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << i << ".csv";
     std::ofstream outputFile(filename.str(), std::ios::app);
@@ -100,14 +101,15 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
     else {
         std::cerr << "Error: Unable to open file for writing.\n";
         }
+*/
 }
 
 //main loop of the program
 int main(){
-    std::clock_t c_start = std::clock();
+    double c_start = omp_get_wtime();
     srand(time(0));
 
-    int history = 500;
+    int history = 5000;
     std::vector<Particle> particles = initialize_particles(history);
     int c=0;
     for(auto i:particles){
@@ -149,8 +151,8 @@ int main(){
     std::cout<<particles[299].x<<std::endl;
     std::cout<<particles[299].y<<std::endl;
 
-    std::clock_t c_end = std::clock();
-    double time_elapsed_ms = 1000.0 * (c_end-c_start) / CLOCKS_PER_SEC;
-    std::cout << "CPU time used: " << time_elapsed_ms / 1000.0 << " s\n";
+    double c_end = omp_get_wtime();
+    double time_elapsed= (c_end-c_start);
+    std::cout << "CPU time used: " << time_elapsed<< " s\n";
     return 0;
 }
