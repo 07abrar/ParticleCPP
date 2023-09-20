@@ -85,7 +85,9 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
             particles[i].y += particles[i].vy * dt;
         }
     }
-    std::ofstream outputFile("particles_time_step_" + std::to_string(j) + ".csv", std::ios::app);
+    std::ostringstream filename;
+    filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << i << ".csv";
+    std::ofstream outputFile(filename.str(), std::ios::app);
     if (outputFile.is_open()) {
         outputFile << "x" << "," << "y" << "\n";
         for (const auto& particle : particles) {
