@@ -86,21 +86,6 @@ void update_particles(std::vector<Particle>& particles, int history, std::vector
             particles[i].y += particles[i].vy * dt;
         }
     }
-    std::ostringstream filename;
-    filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << j << ".csv";
-    std::ofstream outputFile(filename.str(), std::ios::app);
-    if (outputFile.is_open()) {
-        outputFile << "x" << "," << "y" << "\n";
-        for (const auto& particle : particles) {
-            if (!std::isnan(particle.x)) {
-                outputFile << particle.x << "," << particle.y << "\n";
-            }
-        }
-        outputFile.close();
-    }
-    else {
-        std::cerr << "Error: Unable to open file for writing.\n";
-        }
 }
 
 //main loop of the program
@@ -139,6 +124,22 @@ int main(){
         particles.insert(particles.end(), new_particles_to_add.begin(), new_particles_to_add.end());
         new_particles.clear();
         new_particles_to_add.clear();
+
+        std::ostringstream filename;
+        filename << "particles_time_step_" << std::setfill('0') << std::setw(3) << j << ".csv";
+        std::ofstream outputFile(filename.str(), std::ios::app);
+        if (outputFile.is_open()) {
+            outputFile << "x" << "," << "y" << "\n";
+            for (const auto& particle : particles) {
+                if (!std::isnan(particle.x)) {
+                    outputFile << particle.x << "," << particle.y << "\n";
+                }
+            }
+            outputFile.close();
+        }
+        else {
+            std::cerr << "Error: Unable to open file for writing.\n";
+            }
     }
 
 
