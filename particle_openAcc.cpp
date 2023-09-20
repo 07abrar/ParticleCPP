@@ -108,7 +108,7 @@ int main(){
     initialize_fuel(fuel);
     for(int j=0; j<steps; j++){
         std::vector<int> collision(history, 0);
-        #pragma acc data(particles, collision)
+        #pragma acc data copy(particles, collision)
         update_particles(particles, history, collision, j);
         std::vector<Particle> new_particles;
         std::vector<Particle> new_particles_to_add;
